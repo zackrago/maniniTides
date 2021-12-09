@@ -1,0 +1,395 @@
+---
+title: "fishbehavior"
+author: "Zack"
+date: "10/22/2021"
+output: html_document
+---
+```{r}
+library(ggplot2)
+library(sjPlot)
+library(AICcmodavg)
+library(tidyverse)
+library(dplyr)
+library(gridExtra)
+library(reshape2)
+library(rstatix)
+library(ggpubr)
+```
+
+
+```{r}
+bites.dat <- read.csv(file="/Users/explore/Desktop/Data - Bites (Focal-3min).csv")
+```
+
+```{r}
+ggplot(bites.dat, aes(x=location, y=biterate))+ 
+  geom_boxplot(aes(fill=age)) +
+  geom_smooth(method = lm) +
+  xlab("Spacial Area") +
+  ylab("Bite Rate") +
+  ggtitle("Manini Bite Rates Across Ontogney & Location")+ 
+  theme_bw()
+
+```
+```{r}
+ggplot(bites.dat, aes(x=location, y=biterate))+ 
+  geom_boxplot(aes(fill=tide)) +
+  geom_smooth(method = lm) +
+  xlab("Spacial Area") +
+  ylab("Bite Rate") +
+  ggtitle("Manini Bite Rates Across Ontogeny & Location")+ 
+  theme_bw()
+```
+
+```{r}
+
+# one box per variety
+br1<- ggplot(bites.dat, aes(y=biterate, x=location, fill=age)) + 
+    geom_boxplot() +
+    facet_wrap(~tide)+
+      xlab("") +
+  ylab("Bite Rate per Minute") +
+  ggtitle("Manini Bite Rates Across Age & Tide")+
+  scale_fill_manual('Life Stage',values=c("turquoise","sienna1"))+
+   theme_bw()
+
+
+br2<- ggplot(bites.dat, aes(y=biterate, x=location, fill=tide)) + 
+    geom_boxplot() +
+    facet_wrap(~age)+
+    xlab("Location on Reef") +
+  ylab("Bite Rate per Minute") +
+  scale_fill_manual('Tide',values=c("royalblue","maroon1"))+
+   theme_bw()
+
+grid.arrange(br1, br2, nrow=2, ncol=1)
+```
+
+
+```{r}
+ggplot(bites.dat, aes(x=time, y=biterate, color=age)) + 
+    geom_point() +
+    geom_smooth(method=lm)+
+    facet_wrap(~location)+
+   theme_bw()
+```
+
+```{r}
+bitearea.dat<- read.csv(file="/Users/explore/Desktop/Data - rateperarea.csv")
+```
+
+
+```{r}
+ggplot(bitearea.dat, aes(y=bitesarea, x=area, fill=ontog)) + 
+    geom_bar(stat="identity",position = position_dodge(width = 0.9), colour="black") +
+    facet_wrap(~tide)+
+   xlab("Area of Reef") +
+  ylab("Bite Rate Per m^2") +
+  ggtitle('Bites Rate Per Square Meter Across Life Stage & Tide')+
+   scale_fill_manual('Life Stage',values=c("dodgerblue","brown1"))+
+   theme_bw()
+```
+```{r}
+times.dat <- read.csv(file="/Users/explore/Desktop/Data - Bites (Focal-3min).csv")
+```
+
+```{r}
+t1 <- ggplot(times.dat, aes(y=biterate, x=time, color=location)) + 
+    geom_point() +
+    geom_smooth(method=lm)+
+    facet_wrap(~age)+
+    xlab("Time") +
+    ylab("Bite Rate Per Minute") +
+  ggtitle("Change in Bite Rates Over Time of Day")+
+    theme_bw()
+
+t2<- ggplot(abund.dat, aes(y=count, x=time, color=location)) + 
+    geom_point() +
+    geom_smooth(method=lm)+
+    facet_wrap(~age)+
+    xlab("Time") +
+    ylab("Abundance per 1000 m^2") +
+  ggtitle("Change in Estimated Abundance Over Time of Day")+
+    theme_bw()
+
+grid.arrange(t1,t2, ncol=1, nrow=2)
+```
+```{r}
+mod1<- lm(biterate ~ location + tide + age, data=times.dat) ##Non-transformed model
+mod2<- lm(biterate ~ location + tide, data=times.dat)
+mod3<- lm(biterate ~ location + age, data=times.dat)
+mod4<- lm(biterate ~ tide + age, data=times.dat)
+mod5<- lm(biterate ~ location, data=times.dat)
+mod6<- lm(biterate ~ tide, data=times.dat)
+mod7<- lm(biterate ~ age, data=times.dat)
+
+
+models <- list(mod1,mod2,mod3,mod4,mod5,mod6,mod7)
+
+#specify model names
+mod.names <- c('loc.tide.age', 'loc.tide', 'loc.age', 'tide.age', 'loc', 'tide', 'age')
+
+#calculate AIC of each model
+aictab(cand.set = models, modnames = mod.names)
+
+AIC(mod1,mod2,mod3,mod4,mod5,mod6,mod7)
+
+summary(mod1)##Log scaled linear model
+
+
+ ##Model output
+plot(mod1) ##Diagnostic Plots for log scaled model
+plot_model(mod1, type="pred")
+```
+
+```{r}
+abund.dat <- read.csv(file="/Users/explore/Desktop/Data - Abundance (Scan)-2.csv")
+```
+```{r}
+ab1<- ggplot(abund.dat, aes(y=count, x=location, fill=age)) + 
+    geom_boxplot() +
+    facet_wrap(~tide)+
+    xlab("") +
+  ylab("Abundance per 1000 m^2") +
+  ggtitle("Abundance Estimate Across Life Stage & Tide")+
+  scale_fill_manual('Life Stage',values=c("turquoise","sienna1"))+
+    theme_bw()
+
+ab2<- ggplot(abund.dat, aes(y=count, x=location, fill=tide)) + 
+    geom_boxplot() +
+    facet_wrap(~age)+
+    xlab("Location on Reef") +
+  ylab("Abundance per 1000 m^2") +
+  scale_fill_manual('Tide',values=c("royalblue","maroon1"))+
+   theme_bw()
+
+grid.arrange(ab1, ab2, nrow = 2, ncol=1)
+```
+
+
+
+
+
+```{r}
+#STATS FOR FIGURE 2 B
+
+a.crest<- abund.dat %>% filter(location=="Crest")
+a.crestjuvi<-a.crest %>% filter(age=="Juvenile")
+a.crestadult<-a.crest %>% filter(age=="Adult")
+a.slope<- abund.dat %>% filter(location=="Slope")
+#slopejuvi<-crest %>% filter(age=="Juvenile")
+a.slopeadult<-slope %>% filter(age=="Adult")
+a.flat<- abund.dat %>% filter(location=="Flat")
+a.flatjuvi<-flat %>% filter(age=="Juvenile")
+a.flatadult<-flat %>% filter(age=="Adult")
+
+a.crestjuvi <- melt(a.crestjuvi,id.vars="count", measure.vars ="tide")
+a.crestadult <- melt(a.crestadult,id.vars="count", measure.vars ="tide")
+a.slopeadult <- melt(a.slopeadult,id.vars="count", measure.vars ="tide")
+a.flatjuvi <- melt(a.flatjuvi,id.vars="count", measure.vars ="tide")
+a.flatadult <- melt(a.flatadult,id.vars="count", measure.vars ="tide")
+
+stat.test.crestjuvi.a <- a.crestjuvi %>%
+  group_by(variable) %>%
+  t_test(count ~ value) %>%
+  adjust_pvalue(method = "BH") %>%
+  add_significance()
+stat.test.crestjuvi.a
+
+stat.test.crestadult.a <- a.crestadult %>%
+  group_by(variable) %>%
+  t_test(count ~ value) %>%
+  adjust_pvalue(method = "BH") %>%
+  add_significance()
+stat.test.crestadult.a
+
+stat.test.flatjuvi.a <- a.flatjuvi %>%
+  group_by(variable) %>%
+  t_test(count ~ value) %>%
+  adjust_pvalue(method = "BH") %>%
+  add_significance()
+stat.test.flatjuvi.a
+
+stat.test.flatadult.a <- a.flatadult %>%
+  group_by(variable) %>%
+  t_test(count ~ value) %>%
+  adjust_pvalue(method = "BH") %>%
+  add_significance()
+stat.test.flatadult.a
+
+stat.test.slopeadult.a <- a.slopeadult %>%
+  group_by(variable) %>%
+  t_test(count ~ value) %>%
+  adjust_pvalue(method = "BH") %>%
+  add_significance()
+stat.test.slopeadult.a
+```
+```{r}
+###Stats for Figure 1b
+
+crest1<- bites.dat %>% filter(location=="Crest")
+crestjuvi1<-crest1 %>% filter(age=="Juvenile")
+crestadult1<-crest1 %>% filter(age=="Adult")
+slope1<- bites.dat %>% filter(location=="Slope")
+#slopejuvi<-crest %>% filter(age=="Juvenile")
+slopeadult1<-slope1 %>% filter(age=="Adult")
+flat1<- bites.dat %>% filter(location=="Flat")
+flatjuvi1<-flat1 %>% filter(age=="Juvenile")
+flatadult1<-flat1 %>% filter(age=="Adult")
+
+crestjuvi1 <- melt(crestjuvi1,id.vars="biterate", measure.vars ="tide")
+crestadult1 <- melt(crestadult1,id.vars="biterate", measure.vars ="tide")
+slopeadult1 <- melt(slopeadult1,id.vars="biterate", measure.vars ="tide")
+flatjuvi1 <- melt(flatjuvi1,id.vars="biterate", measure.vars ="tide")
+flatadult1 <- melt(flatadult1,id.vars="biterate", measure.vars ="tide")
+
+stat.test.crestjuvi1 <- crestjuvi1 %>%
+  group_by(variable) %>%
+  t_test(biterate ~ value) %>%
+  adjust_pvalue(method = "BH") %>%
+  add_significance()
+stat.test.crestjuvi1
+
+stat.test.crestadult1 <- crestadult1 %>%
+  group_by(variable) %>%
+  t_test(biterate ~ value) %>%
+  adjust_pvalue(method = "BH") %>%
+  add_significance()
+stat.test.crestadult1
+
+stat.test.flatjuvi1 <- flatjuvi1 %>%
+  group_by(variable) %>%
+  t_test(biterate ~ value) %>%
+  adjust_pvalue(method = "BH") %>%
+  add_significance()
+stat.test.flatjuvi1
+
+stat.test.flatadult1 <- flatadult1 %>%
+  group_by(variable) %>%
+  t_test(biterate ~ value) %>%
+  adjust_pvalue(method = "BH") %>%
+  add_significance()
+stat.test.flatadult1
+
+stat.test.slopeadult1 <- slopeadult1 %>%
+  group_by(variable) %>%
+  t_test(biterate ~ value) %>%
+  adjust_pvalue(method = "BH") %>%
+  add_significance()
+stat.test.slopeadult1
+```
+
+
+```{r}
+###Stats for Figure 1a
+
+
+cresthigh<-crest1 %>% filter(tide=="High")
+crestlow<-crest1 %>% filter(tide=="Low")
+
+#slopejuvi<-crest %>% filter(age=="Juvenile")
+#slopelow<-slope1 %>% filter(tide=="Low")
+
+flathigh<-flat1 %>% filter(tide=="High")
+flatlow<-flat1 %>% filter(tide=="Low")
+
+cresthigh1 <- melt(cresthigh,id.vars="biterate", measure.vars ="age")
+crestlow1 <- melt(crestlow,id.vars="biterate", measure.vars ="age")
+#slopeadult1 <- melt(slopeadult1,id.vars="biterate", measure.vars ="tide")
+flathigh1 <- melt(flathigh,id.vars="biterate", measure.vars ="age")
+flatlow1 <- melt(flatlow,id.vars="biterate", measure.vars ="age")
+
+stat.test.cresthigh2 <- cresthigh1 %>%
+  group_by(variable) %>%
+  t_test(biterate ~ value) %>%
+  adjust_pvalue(method = "BH")
+stat.test.cresthigh2
+
+stat.test.crestlow2 <- crestlow1 %>%
+  group_by(variable) %>%
+  t_test(biterate ~ value) %>%
+  adjust_pvalue(method = "BH") %>%
+  add_significance()
+stat.test.crestlow2
+
+stat.test.flatlow2 <- flatlow1 %>%
+  group_by(variable) %>%
+  t_test(biterate ~ value) %>%
+  adjust_pvalue(method = "BH") %>%
+  add_significance()
+stat.test.flatlow2
+
+stat.test.flathigh2 <- flathigh1 %>%
+  group_by(variable) %>%
+  t_test(biterate ~ value) %>%
+  adjust_pvalue(method = "BH") %>%
+  add_significance()
+stat.test.flathigh2
+```
+
+
+```{r}
+##FOR FIGURE 2A
+a.cresthigh<-a.crest %>% filter(tide=="High")
+a.crestlow<-a.crest %>% filter(tide=="Low")
+
+a.slopehigh<-a.slope %>% filter(tide=="High")
+a.slopelow<-a.slope %>% filter(tide=="Low")
+
+a.flathigh<-a.flat %>% filter(tide=="High")
+a.flatlow<-a.flat %>% filter(tide=="Low")
+
+a.cresthigh1 <- melt(a.cresthigh,id.vars="count", measure.vars ="age")
+a.crestlow1 <- melt(a.crestlow,id.vars="count", measure.vars ="age")
+a.slopehigh1 <- melt(a.slopehigh,id.vars="count", measure.vars ="age")
+a.slopelow1 <- melt(a.slopelow,id.vars="count", measure.vars ="age")
+a.flathigh1 <- melt(a.flathigh,id.vars="count", measure.vars ="age")
+a.flatlow1 <- melt(a.flatlow,id.vars="count", measure.vars ="age")
+
+stat.test.cresthigh2.a <- a.cresthigh1 %>%
+  group_by(variable) %>%
+  t_test(count ~ value) %>%
+  adjust_pvalue(method = "BH")
+stat.test.cresthigh2.a
+
+stat.test.crestlow2.a <- a.crestlow1 %>%
+  group_by(variable) %>%
+  t_test(count ~ value) %>%
+  adjust_pvalue(method = "BH") %>%
+  add_significance()
+stat.test.crestlow2.a
+
+stat.test.slopehigh2.a <- a.slopehigh1 %>%
+  group_by(variable) %>%
+  t_test(count ~ value) %>%
+  adjust_pvalue(method = "BH") %>%
+  add_significance()
+stat.test.slopehigh2.a
+
+stat.test.slopelow2.a <- a.slopelow1 %>%
+  group_by(variable) %>%
+  t_test(count ~ value) %>%
+  adjust_pvalue(method = "BH") %>%
+  add_significance()
+stat.test.slopelow2.a
+
+stat.test.flatlow2.a <- a.flatlow1 %>%
+  group_by(variable) %>%
+  t_test(count ~ value) %>%
+  adjust_pvalue(method = "BH") %>%
+  add_significance()
+stat.test.flatlow2.a
+
+stat.test.flathigh2.a <- a.flathigh1 %>%
+  group_by(variable) %>%
+  t_test(count ~ value) %>%
+  adjust_pvalue(method = "BH") %>%
+  add_significance()
+stat.test.flathigh2.a
+```
+
+
+
+
+
+
